@@ -1,2 +1,6 @@
 Flask
 requests
+yfinance
+matplotlib
+openai
+apscheduler
