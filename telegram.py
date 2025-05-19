@@ -32,8 +32,9 @@ def get_finance_news():
         resp = requests.get(url, timeout=10).json()
         articles = resp.get('articles', [])
         if articles:
-            story = random.choice(articles)
-            return f"💸 Finance News: {story['title']} ({story['source']['name']})"
+            top = articles[:2]
+            news = "\n".join([f"💸 Finance News: {a['title']} ({a['source']['name']})" for a in top])
+            return news
         else:
             return "💸 Finance News: The market's so boring, even the bots are falling asleep."
     except Exception as e:
@@ -46,13 +47,9 @@ def get_politics_news():
         resp = requests.get(url, timeout=10).json()
         articles = resp.get('articles', [])
         if articles:
-            story = random.choice(articles)
-            return f"🏛️ Politics: {story['title']} ({story['source']['name']})"
-        else:
-            return "🏛️ Politics: Even the politicians are bored."
-    except Exception as e:
-        logger.error(f"Politics news error: {e}")
-        return "🏛️ Politics: Couldn’t fetch—maybe Congress is in a shutdown."
+            top = articles[:2]
+            news = "\n".join([f"🏛️ Politics: {a['title']} ({a['source']['name']})"
+
 
 def get_tech_news():
     try:
