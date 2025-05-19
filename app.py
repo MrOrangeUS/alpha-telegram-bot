@@ -51,21 +51,26 @@ def paypal_ipn():
         username = data.get('custom')
         if username:
             send_welcome_dm(username)
-    return "OK", 200
-@app.route('/webhook', methods=['POST'])
+    return "OK", 200@app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     try:
         data = request.get_json()
         print("🔥 Telegram webhook received:", data)
 
         message = data.get("message", {})
-        text = message.get("text", "")
+        text = message.get("text", "").strip().lower()
         chat_id = message.get("chat", {}).get("id")
 
-        if text.strip().startswith("/drop"):
+        # Remove bot mention if present (e.g. /drop@botname → /drop)
+        if "@" in text:
+            text = text.split("@")[0]
+
+        if text == "/drop":
+            print("✅ Matched command: /drop")
             run_alpha_drop()
             reply = "🚀 Alpha drop initiated manually!"
         else:
+            print("❌ Unknown command:", text)
             reply = "Unknown command. Try /drop"
 
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -76,9 +81,10 @@ def telegram_webhook():
         requests.post(url, json=payload)
 
     except Exception as e:
-        print("❌ Error in /webhook:", e)
+        print("❌ Error in /webhook handler:", str(e))
 
     return "OK", 200
+
 
 
 
