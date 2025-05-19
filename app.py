@@ -52,7 +52,7 @@ def paypal_ipn():
         if username:
             send_welcome_dm(username)
     return "OK", 200
-    @app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     try:
         data = request.get_json()
@@ -89,11 +89,6 @@ def telegram_webhook():
         print("❌ Error in /webhook:", str(e))
 
     return "OK", 200
-
-
-
-
-
 # === AI ANALYSIS + CHART GENERATION ===
 def fetch_stock_data(symbol):
     stock = yf.Ticker(symbol)
