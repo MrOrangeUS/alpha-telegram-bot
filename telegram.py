@@ -1,6 +1,8 @@
 import requests
 import logging
 from stock import fetch_stock_data, generate_chart, ask_chatgpt
+import os
+os.makedirs('logs', exist_ok=True)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
