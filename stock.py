@@ -68,25 +68,45 @@ def ask_chatgpt(symbol, info, hist, openai_api_key):
         rsi_val = round(hist['RSI'].dropna().iloc[-1], 2) if not hist['RSI'].dropna().empty else "N/A"
         current_price = info.get('regularMarketPrice', 'N/A')
         volume = info.get('volume', 'N/A')
-        prompt = f"""You're an elite trading analyst. For {symbol}:
+        prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment. 
+**If the options chain is liquid, always recommend the most profitable call or put options contract as well as the stock play.**
+
+- Ticker: {symbol}
 - Current Price: {current_price}
 - RSI (14): {rsi_val}
 - Volume: {volume}
-Provide a concise trade setup with:
-- Entry
-- Stop Loss
-- Price Target
-- Reasoning
-- Risk/reward summary
-End with: "Follow @MemeDIYGenZX for more chaos!"
-Keep it under 200 words."""
+
+Instructions:
+1. Do deep technical analysis. Detect breakouts, reversals, price patterns, or divergences. State why.
+2. Scan for news, macro conditions, or sector trends affecting the ticker and reference them if relevant.
+3. Output an actionable trade:
+   - **Direction** (Long/Short/No Trade)
+   - **Entry Price**
+   - **Stop Loss**
+   - **Two Price Targets** (conservative/aggressive)
+4. **Options Play:** 
+   - Suggest the most profitable call or put (whichever matches your thesis) with:
+     - **Strike Price**
+     - **Expiration Date**
+     - **Entry Price** (option premium)
+     - **Profit Target**
+   - Use only near-the-money, next-month contracts unless you see a better opportunity.
+   - If options volume is too low or no clear edge, state "No optimal options play."
+
+5. Justify the setup with 1–2 sharp sentences using technical, volume, AND news/macro logic.
+
+6. End with: "Posted by AI Alpha Club | More: @xxx"
+
+**Format your answer exactly like this:**
+"""
         response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
-            timeout=10
-        )
-        analysis = response.choices[0].message['content'].strip()
+    model="gpt-4o",  # Or "gpt-4-1106-preview"
+    messages=[{"role": "user", "content": prompt}],
+    max_tokens=300,
+    timeout=10
+)
+analysis = response.choices[0].message['content'].strip()
+
         logger.info(f"Generated ChatGPT analysis for {symbol}")
         return analysis
     except Exception as e:
