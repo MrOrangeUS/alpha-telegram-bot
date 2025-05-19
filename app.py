@@ -74,10 +74,12 @@ def telegram_webhook():
             "text": reply
         }
         requests.post(url, json=payload)
+
     except Exception as e:
         print("❌ Error in /webhook:", e)
 
     return "OK", 200
+
 
 # === AI ANALYSIS + CHART GENERATION ===
 def fetch_stock_data(symbol):
