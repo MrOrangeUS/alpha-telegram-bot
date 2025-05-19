@@ -93,7 +93,7 @@ Instructions:
    - Use only near-the-money, next-month contracts unless you see a better opportunity.
    - If options volume is too low or no clear edge, state "No optimal options play."
 
-5. Justify the setup with 1–2 sharp sentences using technical, volume, AND news/macro logic.
+5. Justify the setup with 1-2 sharp sentences using technical, volume, AND news/macro logic.
 
 6. End with: "Posted by AI Alpha Club | More: @xxx"
 
