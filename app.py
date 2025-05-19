@@ -1,169 +1,120 @@
 from flask import Flask, request
-import requests
-import yfinance as yf
-import matplotlib.pyplot as plt
-import openai
+from telegram import handle_webhook, run_alpha_drop
+from paypal import verify_ipn, send_welcome_dm
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
+from dotenv import load_dotenv
+import logging
 import os
+import sys
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# === CONFIG ===
+# Load environment variables
+load_dotenv()
+
+# Config
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
 
-def verify_ipn(data):
-    verify_url = "https://ipnpb.paypal.com/cgi-bin/webscr"
-    headers = {'content-type': 'application/x-www-form-urlencoded'}
-    verify_data = {'cmd': '_notify-validate'}
-    verify_data.update(data)
-    response = requests.post(verify_url, data=verify_data, headers=headers)
-    return response.text == "VERIFIED"
+# Validate env vars
+required_vars = {
+    'TELEGRAM_BOT_TOKEN': TELEGRAM_BOT_TOKEN,
+    'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
+    'OPENAI_API_KEY': OPENAI_API_KEY
+}
+missing_vars = [key for key, value in required_vars.items() if not value]
+if missing_vars:
+    print(f"🚨 Missing environment variables: {', '.join(missing_vars)}")
+    sys.exit(1)
 
-def send_welcome_dm(username):
-    msg = """🚀 You’re in.
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/bot.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
-Welcome to *DAILY ALPHA* — my private signal channel.
-
-✅ New plays drop every 4 hours  
-✅ Turn on notifications  
-✅ Tap the pinned post for the latest alpha
-
-Link is yours — don’t share it.
-Next move hits soon.
-
-– @MrOrangeUS"""
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {'chat_id': f"@{username}", 'text': msg, 'parse_mode': 'Markdown'}
-    requests.post(url, data=payload)
-
-@app.route('/paypal-ipn', methods=['POST'])
-def paypal_ipn():
-    data = request.form.to_dict()
-    if not verify_ipn(data):
-        return "Invalid IPN", 400
-    if data.get('payment_status') == "Completed" and data.get('mc_gross') == '97.00':
-        username = data.get('custom')
-        if username:
-            send_welcome_dm(username)
-    return "OK", 200
-
-def fetch_stock_data(symbol):
-    stock = yf.Ticker(symbol)
-    hist = stock.history(period="30d")
-    if hist.empty:
-        return None, None
-    delta = hist['Close'].diff().dropna()
-    gain = delta.where(delta > 0, 0).rolling(window=14).mean()
-    loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    hist['RSI'] = rsi
-    return stock.info, hist
-
-def generate_chart(symbol, hist):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
-    ax1.plot(hist['Close'], label="Close Price", color='blue')
-    ax2.plot(hist['RSI'], label="RSI", color='purple')
-    ax2.axhline(70, color='red', linestyle='--')
-    ax2.axhline(30, color='green', linestyle='--')
-    ax1.set_title(f"{symbol} - 30 Day")
-    plt.tight_layout()
-    filename = f"{symbol}_chart.png"
-    plt.savefig(filename)
-    plt.close()
-    return filename
-
-def ask_chatgpt(symbol, info, hist):
-    rsi_val = round(hist['RSI'].dropna().iloc[-1], 2)
-    prompt = f"""You're an elite trading analyst. Based on the following:
-
-Symbol: {symbol}
-Current Price: {info.get('regularMarketPrice')}
-RSI (14): {rsi_val}
-Volume: {info.get('volume')}
-
-Give a trade setup with:
-- Entry
-- Stop Loss
-- Price Target
-- Reasoning
-- Risk/reward summary
-"""
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message['content']
-
-def send_telegram_post(symbol, analysis, chart_file, chat_id):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    files = {'photo': open(chart_file, 'rb')}
-    caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
-    data = {
-        'chat_id': chat_id,
-        'caption': caption,
-        'parse_mode': 'Markdown'
-    }
-    requests.post(url, files=files, data=data)
-
-def run_alpha_drop(chat_id):
-    symbol = "XFOR"
-    info, hist = fetch_stock_data(symbol)
-    if info and hist is not None:
-        chart = generate_chart(symbol, hist)
-        analysis = ask_chatgpt(symbol, info, hist)
-        send_telegram_post(symbol, analysis, chart, chat_id)
+# Log startup
+logger.info("🚀 Bot starting up... Ready to drop alpha and chaos!")
 
 @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
+    """Handle Telegram webhook for commands like /drop."""
     try:
         data = request.get_json()
-        print("\n======= RAW WEBHOOK DATA =======\n", data, "\n===============================\n")
-
-        message = data.get("message") or data.get("channel_post", {})
-        text = message.get("text", "").strip()
-        chat_id = message.get("chat", {}).get("id")
-
-        print(f"--- TEXT: {text}")
-        print(f"--- CHAT ID: {chat_id}")
-        print(f"--- ENTITIES: {message.get('entities', [])}")
-
-        entities = message.get("entities", [])
-        command = None
-        for entity in entities:
-            if entity.get("type") == "bot_command":
-                command = text[entity["offset"]:entity["offset"] + entity["length"]].lower()
-                break
-
-        print(f"--- COMMAND: {command}")
-
-        if command and command.startswith("/drop"):
-            print("✅ Detected /drop command")
-            run_alpha_drop(chat_id)
-            reply = "🚀 Alpha drop initiated manually!"
-        else:
-            print("❌ Unknown command:", command)
-            reply = "Unknown command. Try /drop"
-
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": reply
-        }
-        requests.post(url, json=payload)
-
+        if not data:
+            logger.warning("No JSON data in webhook")
+            return "No data", 400
+        result, status = handle_webhook(data, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+        return result, status
     except Exception as e:
-        print("❌ Error in /webhook:", str(e))
+        logger.error(f"Webhook route error: {e}")
+        return "Server error", 500
 
-    return "OK", 200
+@app.route('/paypal-ipn', methods=['POST'])
+def paypal_ipn():
+    """Process PayPal IPN for new subscribers."""
+    try:
+        data = request.form.to_dict()
+        if not verify_ipn(data):
+            logger.warning("Invalid IPN received")
+            return "Invalid IPN", 400
+        if data.get('payment_status') == "Completed" and data.get('mc_gross') == '97.00':
+            username = data.get('custom', '').strip()
+            if username and username.isalnum():  # Basic sanitization
+                send_welcome_dm(username, TELEGRAM_BOT_TOKEN)
+                logger.info(f"Processed IPN for @{username}")
+            else:
+                logger.warning(f"Invalid username in IPN: {username}")
+        return "OK", 200
+    except Exception as e:
+        logger.error(f"PayPal IPN error: {e}")
+        return "Server error", 500
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(lambda: run_alpha_drop(TELEGRAM_CHAT_ID), 'interval', hours=4)
-scheduler.start()
+@app.route('/test-drop', methods=['GET'])
+def test_drop():
+    """Test alpha drop locally."""
+    try:
+        logger.info("Initiating test alpha drop")
+        success = run_alpha_drop(TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN)
+        return "Test drop initiated" if success else "Test drop failed", 200
+    except Exception as e:
+        logger.error(f"Test drop error: {e}")
+        return "Test drop error", 500
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
+    return "Bot is alive and chaotic!", 200
+
+def init_scheduler():
+    """Initialize background scheduler for alpha drops."""
+    try:
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            lambda: run_alpha_drop(TELEGRAM_CHAT_ID, TELEGRAM_BOT_TOKEN),
+            'interval',
+            hours=4,
+            misfire_grace_time=300,
+            id='alpha_drop'
+        )
+        scheduler.start()
+        logger.info("📅 Scheduler started, dropping alpha every 4 hours")
+    except Exception as e:
+        logger.error(f"Scheduler init error: {e}")
+        sys.exit(1)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Create logs directory if missing
+    os.makedirs('logs', exist_ok=True)
+    # Initialize scheduler
+    init_scheduler()
+    # Run Flask app
+    logger.info("🌌 Flask app launching on port 5000...")
+    app.run(host='0.0.0.0', port=5000, debug=False)
