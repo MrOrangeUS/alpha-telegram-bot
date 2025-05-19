@@ -6,6 +6,7 @@ import tempfile
 import os
 
 # Setup logging
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -68,8 +69,8 @@ def ask_chatgpt(symbol, info, hist, openai_api_key):
         rsi_val = round(hist['RSI'].dropna().iloc[-1], 2) if not hist['RSI'].dropna().empty else "N/A"
         current_price = info.get('regularMarketPrice', 'N/A')
         volume = info.get('volume', 'N/A')
-        prompt = f"""prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment. 
-**If the options chain is liquid, always recommend the most profitable call or put options contract as well as the stock play.**
+        prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment.
+If the options chain is liquid, always recommend the most profitable call or put options contract as well as the stock play.
 
 - Ticker: {symbol}
 - Current Price: {current_price}
@@ -80,25 +81,38 @@ Instructions:
 1. Do deep technical analysis. Detect breakouts, reversals, price patterns, or divergences. State why.
 2. Scan for news, macro conditions, or sector trends affecting the ticker and reference them if relevant.
 3. Output an actionable trade:
-   - **Direction** (Long/Short/No Trade)
-   - **Entry Price**
-   - **Stop Loss**
-   - **Two Price Targets** (conservative/aggressive)
-4. **Options Play:** 
+   - Direction (Long/Short/No Trade)
+   - Entry Price
+   - Stop Loss
+   - Two Price Targets (conservative/aggressive)
+4. Options Play:
    - Suggest the most profitable call or put (whichever matches your thesis) with:
-     - **Strike Price**
-     - **Expiration Date**
-     - **Entry Price** (option premium)
-     - **Profit Target**
+     - Strike Price
+     - Expiration Date
+     - Entry Price (option premium)
+     - Profit Target
    - Use only near-the-money, next-month contracts unless you see a better opportunity.
    - If options volume is too low or no clear edge, state "No optimal options play."
-
 5. Justify the setup with 1-2 sharp sentences using technical, volume, AND news/macro logic.
-
 6. End with: "Posted by AI Alpha Club | More: @xxx"
 
-**Format your answer exactly like this:**
-""""""
+Format your answer exactly like this:
+📊 DEEP RESEARCH SIGNAL ({symbol})
+
+Direction: [Long/Short/No Trade]
+Entry: $[entry]
+Stop Loss: $[stop]
+Targets: $[target1] (conservative), $[target2] (aggressive)
+
+Options Play: [Call/Put, Strike, Expiry, Entry, Target]
+[Or say "No optimal options play."]
+
+Reason: [Clear, direct logic—use technical, volume, AND news/macro context.]
+
+Posted by AI Alpha Club | More: @xxx
+
+Limit answer to 150 words. Be bold and precise. Never use "not financial advice."
+"""
         response = openai.ChatCompletion.create(
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
