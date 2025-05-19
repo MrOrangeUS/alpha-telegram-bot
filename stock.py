@@ -68,7 +68,7 @@ def ask_chatgpt(symbol, info, hist, openai_api_key):
         rsi_val = round(hist['RSI'].dropna().iloc[-1], 2) if not hist['RSI'].dropna().empty else "N/A"
         current_price = info.get('regularMarketPrice', 'N/A')
         volume = info.get('volume', 'N/A')
-        prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment. 
+        prompt = f"""prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment. 
 **If the options chain is liquid, always recommend the most profitable call or put options contract as well as the stock play.**
 
 - Ticker: {symbol}
@@ -98,16 +98,14 @@ Instructions:
 6. End with: "Posted by AI Alpha Club | More: @xxx"
 
 **Format your answer exactly like this:**
-"""
+""""""
         response = openai.ChatCompletion.create(
-    model="gpt-4o",  # Or "gpt-4-1106-preview"
-    messages=[{"role": "user", "content": prompt}],
-    max_tokens=300,
-    timeout=10
-)
-analysis = response.choices[0].message['content'].strip()
-
-        logger.info(f"Generated ChatGPT analysis for {symbol}")
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            timeout=10
+        )
+        analysis = response.choices[0].message['content'].strip()
         return analysis
     except Exception as e:
         logger.error(f"ChatGPT failed for {symbol}: {e}")
