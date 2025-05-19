@@ -11,7 +11,7 @@ os.makedirs('logs', exist_ok=True)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Jokes
+# Jokes list
 JOKES = [
     "Why did the AI quit its job in finance? Too many humans kept asking for 'explain like I’m five.'",
     "Trading tip: Buy low, sell high. You’re welcome. That’ll be $10,000.",
