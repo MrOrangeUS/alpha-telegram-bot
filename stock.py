@@ -124,3 +124,25 @@ Limit answer to 150 words. Be bold and precise. Never use "not financial advice.
     except Exception as e:
         logger.error(f"ChatGPT failed for {symbol}: {e}")
         return "Analysis unavailable. Try again later.\nFollow @MemeDIYGenZX for more chaos!"
+
+def multi_ticker_alpha(tickers, openai_api_key):
+    """
+    Given a list of tickers, returns a dict:
+    {symbol: {'info': ..., 'hist': ..., 'analysis': ..., 'chart': ...}}
+    """
+    results = {}
+    for symbol in tickers:
+        logger.info(f"--- Processing {symbol} ---")
+        info, hist = fetch_stock_data(symbol)
+        if info and hist is not None:
+            chart = generate_chart(symbol, hist)
+            analysis = ask_chatgpt(symbol, info, hist, openai_api_key)
+            results[symbol] = {
+                'info': info,
+                'hist': hist,
+                'analysis': analysis,
+                'chart': chart
+            }
+        else:
+            logger.warning(f"Skipping {symbol}: no data.")
+    return results
