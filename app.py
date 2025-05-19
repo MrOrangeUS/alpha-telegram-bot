@@ -134,13 +134,17 @@ data = {
 {analysis}", 'parse_mode': 'Markdown'}
     requests.post(url, files=files, data=data)
 
-def run_alpha_drop():
-    symbol = "XFOR"
-    info, hist = fetch_stock_data(symbol)
-    if info and hist is not None:
-        chart = generate_chart(symbol, hist)
-        analysis = ask_chatgpt(symbol, info, hist)
-        send_telegram_post(symbol, analysis, chart)
+def send_telegram_post(symbol, analysis, chart_file):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    files = {'photo': open(chart_file, 'rb')}
+    caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
+    data = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'caption': caption,
+        'parse_mode': 'Markdown'
+    }
+    requests.post(url, files=files, data=data)
+
 
 # === SCHEDULED JOB ===
 scheduler = BackgroundScheduler()
