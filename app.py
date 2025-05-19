@@ -13,10 +13,8 @@ app = Flask(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
 openai.api_key = OPENAI_API_KEY
 
-# === PAYPAL IPN + WELCOME DM ===
 def verify_ipn(data):
     verify_url = "https://ipnpb.paypal.com/cgi-bin/webscr"
     headers = {'content-type': 'application/x-www-form-urlencoded'}
@@ -53,45 +51,6 @@ def paypal_ipn():
             send_welcome_dm(username)
     return "OK", 200
 
-@app.route('/webhook', methods=['POST'])
-def telegram_webhook():
-    try:
-        data = request.get_json()
-        print("🔥 Webhook received:", data)
-
-        # Check for private/group message
-        message = data.get("message") or data.get("channel_post", {})
-        text = message.get("text", "").strip().lower()
-        chat_id = message.get("chat", {}).get("id")
-
-        print("📩 Text received:", text)
-        print("📢 Chat ID:", chat_id)
-
-        # Normalize command (remove @mention)
-        command = text.split()[0].split("@")[0]
-
-        if command == "/drop":
-            print("✅ Detected /drop")
-            run_alpha_drop()
-            reply = "🚀 Alpha drop initiated manually!"
-        else:
-            print("❌ Unknown command:", command)
-            reply = "Unknown command. Try /drop"
-
-        # Respond to the same chat
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": reply
-        }
-        requests.post(url, json=payload)
-
-    except Exception as e:
-        print("❌ Error in /webhook:", str(e))
-
-    return "OK", 200
-
-# === AI ANALYSIS + CHART GENERATION ===
 def fetch_stock_data(symbol):
     stock = yf.Ticker(symbol)
     hist = stock.history(period="30d")
@@ -140,28 +99,60 @@ Give a trade setup with:
     )
     return response.choices[0].message['content']
 
-def send_telegram_post(symbol, analysis, chart_file):
+def send_telegram_post(symbol, analysis, chart_file, chat_id):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     files = {'photo': open(chart_file, 'rb')}
     caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
     data = {
-        'chat_id': TELEGRAM_CHAT_ID,
+        'chat_id': chat_id,
         'caption': caption,
         'parse_mode': 'Markdown'
     }
     requests.post(url, files=files, data=data)
 
-def run_alpha_drop():
+def run_alpha_drop(chat_id):
     symbol = "XFOR"
     info, hist = fetch_stock_data(symbol)
     if info and hist is not None:
         chart = generate_chart(symbol, hist)
         analysis = ask_chatgpt(symbol, info, hist)
-        send_telegram_post(symbol, analysis, chart)
+        send_telegram_post(symbol, analysis, chart, chat_id)
 
-# === SCHEDULED JOB ===
+@app.route('/webhook', methods=['POST'])
+def telegram_webhook():
+    try:
+        data = request.get_json()
+        print("🔥 Webhook received:", data)
+        message = data.get("message") or data.get("channel_post", {})
+        text = message.get("text", "").strip().lower()
+        chat_id = message.get("chat", {}).get("id")
+
+        print("📩 Text received:", text)
+        print("📢 Chat ID:", chat_id)
+        command = text.split()[0].split("@")[0]
+
+        if command == "/drop":
+            print("✅ Detected /drop")
+            run_alpha_drop(chat_id)
+            reply = "🚀 Alpha drop initiated manually!"
+        else:
+            print("❌ Unknown command:", command)
+            reply = "Unknown command. Try /drop"
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": reply
+        }
+        requests.post(url, json=payload)
+
+    except Exception as e:
+        print("❌ Error in /webhook:", str(e))
+
+    return "OK", 200
+
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_alpha_drop, 'interval', hours=4)
+scheduler.add_job(lambda: run_alpha_drop(TELEGRAM_CHAT_ID), 'interval', hours=4)
 scheduler.start()
 
 if __name__ == '__main__':
