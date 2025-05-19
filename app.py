@@ -54,7 +54,7 @@ def telegram_webhook():
         if not data:
             logger.warning("No JSON data in webhook")
             return "No data", 400
-        result, status = handle_webhook(data, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+        result, status = handle_webhook(data, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, OPENAI_API_KEY)
         return result, status
     except Exception as e:
         logger.error(f"Webhook route error: {e}")
