@@ -52,7 +52,7 @@ def paypal_ipn():
         if username:
             send_welcome_dm(username)
     return "OK", 200
-@app.route(f'/webhook/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     data = request.get_json()
     message = data.get("message", {})
