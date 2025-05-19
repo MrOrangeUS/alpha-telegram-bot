@@ -132,6 +132,13 @@ def send_telegram_post(symbol, analysis, chart_file):
     }
     requests.post(url, files=files, data=data)
 
+def run_alpha_drop():
+    symbol = "XFOR"
+    info, hist = fetch_stock_data(symbol)
+    if info and hist is not None:
+        chart = generate_chart(symbol, hist)
+        analysis = ask_chatgpt(symbol, info, hist)
+        send_telegram_post(symbol, analysis, chart)
 
 # === SCHEDULED JOB ===
 scheduler = BackgroundScheduler()
