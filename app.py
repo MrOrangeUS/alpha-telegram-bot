@@ -125,16 +125,6 @@ def send_telegram_post(symbol, analysis, chart_file):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     files = {'photo': open(chart_file, 'rb')}
     caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
-data = {
-    'chat_id': TELEGRAM_CHAT_ID,
-    'caption': caption,
-    'parse_mode': 'Markdown'
-}
-
-def send_telegram_post(symbol, analysis, chart_file):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    files = {'photo': open(chart_file, 'rb')}
-    caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
     data = {
         'chat_id': TELEGRAM_CHAT_ID,
         'caption': caption,
