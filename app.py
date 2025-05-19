@@ -1,6 +1,7 @@
 from flask import Flask, request
 from telegram import handle_webhook, run_alpha_drop
-from paypal import verify_ipn, send_welcome_dm
+from paypal import verify_ipn
+from telegram import send_welcome_dm
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import logging
