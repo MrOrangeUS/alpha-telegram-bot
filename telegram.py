@@ -88,4 +88,4 @@ def handle_webhook(data, bot_token, allowed_chat_id):
             logger.info(f"Ignoring unknown command: {text}")
             reply = "Unknown command. Try /drop"
 
-        url = f"https://api.telegram.org/bot{b
+        url = f"https://api.telegram.org/@aiagentalphacalls_bot
