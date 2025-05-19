@@ -65,7 +65,7 @@ def run_alpha_drop(chat_id, bot_token):
     send_telegram_post(symbol, analysis, chart, chat_id, bot_token)
     return True
 
-def handle_webhook(data, bot_token, allowed_chat_id):
+def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     try:
         logger.debug(f"Webhook data: {data}")
         message = data.get("message") or data.get("channel_post", {})
