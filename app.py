@@ -69,6 +69,7 @@ def telegram_webhook():
     payload = {
         "chat_id": chat_id,
         "text": reply
+        print("🔥 Telegram webhook received:", data)  # Add this line for Render logs
     }
     requests.post(url, json=payload)
     return "OK", 200
