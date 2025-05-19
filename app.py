@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import logging
 import os
 import sys
+import os
+os.makedirs('logs', exist_ok=True)
 
 # Initialize Flask app
 app = Flask(__name__)
