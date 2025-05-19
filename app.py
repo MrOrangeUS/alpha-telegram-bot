@@ -131,9 +131,6 @@ data = {
     'parse_mode': 'Markdown'
 }
 
-{analysis}", 'parse_mode': 'Markdown'}
-    requests.post(url, files=files, data=data)
-
 def send_telegram_post(symbol, analysis, chart_file):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
     files = {'photo': open(chart_file, 'rb')}
