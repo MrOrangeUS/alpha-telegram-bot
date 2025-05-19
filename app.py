@@ -81,6 +81,7 @@ def telegram_webhook():
     return "OK", 200
 
 
+
 # === AI ANALYSIS + CHART GENERATION ===
 def fetch_stock_data(symbol):
     stock = yf.Ticker(symbol)
