@@ -52,7 +52,26 @@ def paypal_ipn():
         if username:
             send_welcome_dm(username)
     return "OK", 200
+@app.route(f'/webhook/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def telegram_webhook():
+    data = request.get_json()
+    message = data.get("message", {})
+    text = message.get("text", "")
+    chat_id = message.get("chat", {}).get("id")
 
+    if text == "/drop":
+        run_alpha_drop()
+        reply = "🚀 Alpha drop initiated manually!"
+    else:
+        reply = "Unknown command. Try /drop"
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": reply
+    }
+    requests.post(url, json=payload)
+    return "OK", 200
 # === AI ANALYSIS + CHART GENERATION ===
 def fetch_stock_data(symbol):
     stock = yf.Ticker(symbol)
