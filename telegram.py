@@ -64,12 +64,11 @@ def run_alpha_drop(chat_id, bot_token):
     return True
 
 def handle_webhook(data, bot_token, allowed_chat_id):
-    """Process Telegram webhook data and handle commands."""
     try:
         logger.debug(f"Webhook data: {data}")
         message = data.get("message") or data.get("channel_post", {})
-        text = message.get("text", "").strip().lower()
-        chat_id = message.get("chat", {}).get("id")
+        text = message.get("text", "").strip()
+        chat_id = str(message.get("chat", {}).get("id"))
 
         logger.info(f"Received text: {text}, chat_id: {chat_id}")
 
@@ -77,10 +76,20 @@ def handle_webhook(data, bot_token, allowed_chat_id):
             logger.warning("No chat_id in webhook data")
             return "No chat_id", 400
 
-        if str(chat_id) != allowed_chat_id:
+        # --- Command extraction using entities ---
+        entities = message.get("entities", [])
+        command = None
+        for entity in entities:
+            if entity.get("type") == "bot_command":
+                command = text[entity["offset"]:entity["offset"] + entity["length"]].lower()
+                break
+        logger.info(f"Extracted command: {command}")
+
+        # --- Authorization check (optional for test) ---
+        if allowed_chat_id and str(chat_id) != str(allowed_chat_id):
             logger.warning(f"Unauthorized chat_id: {chat_id}")
             reply = "This bot is restricted to a specific channel."
-        elif text.startswith("/drop"):
+        elif command and command.startswith("/drop"):
             logger.info("Processing /drop command")
             success = run_alpha_drop(chat_id, bot_token)
             reply = "🚀 Alpha drop initiated manually!" if success else "❌ Failed to drop alpha. Try again later."
@@ -89,3 +98,10 @@ def handle_webhook(data, bot_token, allowed_chat_id):
             reply = "Unknown command. Try /drop"
 
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {"chat_id": chat_id, "text": reply}
+        requests.post(url, json=payload)
+        return "OK", 200
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return "Server error", 500
