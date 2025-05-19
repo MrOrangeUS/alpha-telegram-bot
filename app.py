@@ -122,28 +122,31 @@ def run_alpha_drop(chat_id):
 def telegram_webhook():
     try:
         data = request.get_json()
-        print("🔥 Webhook received:", data)
+        print("\n======= RAW WEBHOOK DATA =======\n", data, "\n===============================\n")
 
-        # Works for both message and channel_post (groups, channels, private)
         message = data.get("message") or data.get("channel_post", {})
-        text = message.get("text", "").strip().lower()
+        text = message.get("text", "").strip()
         chat_id = message.get("chat", {}).get("id")
 
-        print("📩 Text received:", text)
-        print("📢 Chat ID:", chat_id)
+        print(f"--- TEXT: {text}")
+        print(f"--- CHAT ID: {chat_id}")
+        print(f"--- ENTITIES: {message.get('entities', [])}")
 
-        # Check if the command is /drop with or without @botname
-        if text.startswith("/drop"):
-            base_cmd = text.split()[0]   # only command part
-            if base_cmd.startswith("/drop"):
-                print("✅ Detected /drop command")
-                run_alpha_drop(chat_id)
-                reply = "🚀 Alpha drop initiated manually!"
-            else:
-                print("❌ Not /drop after normalization:", base_cmd)
-                reply = "Unknown command. Try /drop"
+        entities = message.get("entities", [])
+        command = None
+        for entity in entities:
+            if entity.get("type") == "bot_command":
+                command = text[entity["offset"]:entity["offset"] + entity["length"]].lower()
+                break
+
+        print(f"--- COMMAND: {command}")
+
+        if command and command.startswith("/drop"):
+            print("✅ Detected /drop command")
+            run_alpha_drop(chat_id)
+            reply = "🚀 Alpha drop initiated manually!"
         else:
-            print("❌ Command did not start with /drop:", text)
+            print("❌ Unknown command:", command)
             reply = "Unknown command. Try /drop"
 
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -157,7 +160,6 @@ def telegram_webhook():
         print("❌ Error in /webhook:", str(e))
 
     return "OK", 200
-
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(lambda: run_alpha_drop(TELEGRAM_CHAT_ID), 'interval', hours=4)
