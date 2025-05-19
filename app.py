@@ -52,29 +52,32 @@ def paypal_ipn():
         if username:
             send_welcome_dm(username)
     return "OK", 200
-    
-@app.route('/webhook', methods=['POST'])
+    @app.route('/webhook', methods=['POST'])
 def telegram_webhook():
     try:
         data = request.get_json()
-        print("🔥 Telegram webhook received:", data)
+        print("🔥 Webhook received:", data)
 
-        message = data.get("message", {})
+        # Check for private/group message
+        message = data.get("message") or data.get("channel_post", {})
         text = message.get("text", "").strip().lower()
         chat_id = message.get("chat", {}).get("id")
 
-        # Remove bot mention if present (e.g. /drop@botname → /drop)
-        if "@" in text:
-            text = text.split("@")[0]
+        print("📩 Text received:", text)
+        print("📢 Chat ID:", chat_id)
 
-        if text == "/drop":
-            print("✅ Matched command: /drop")
+        # Normalize command (remove @mention)
+        command = text.split()[0].split("@")[0]
+
+        if command == "/drop":
+            print("✅ Detected /drop")
             run_alpha_drop()
             reply = "🚀 Alpha drop initiated manually!"
         else:
-            print("❌ Unknown command:", text)
+            print("❌ Unknown command:", command)
             reply = "Unknown command. Try /drop"
 
+        # Respond to the same chat
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             "chat_id": chat_id,
@@ -83,9 +86,10 @@ def telegram_webhook():
         requests.post(url, json=payload)
 
     except Exception as e:
-        print("❌ Error in /webhook handler:", str(e))
+        print("❌ Error in /webhook:", str(e))
 
     return "OK", 200
+
 
 
 
