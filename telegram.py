@@ -187,7 +187,7 @@ else:
 
         if not chat_id:
             logger.warning("No chat_id in webhook data")
-            return "No chat_id", 400
+            # return "No chat_id", 400
 
         # Extract command from entities for full Telegram compatibility
         entities = message.get("entities", [])
