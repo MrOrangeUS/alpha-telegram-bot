@@ -1,6 +1,7 @@
 import openai
 import requests
 import os
+import random
 from jokes import nova_joke
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
@@ -28,19 +29,33 @@ def random_comedian_joke(openai_api_key, topic="trading, crypto, meme coins, or 
 # ---- Get Latest Finance News ----
 def get_finance_news():
     try:
+        if not NEWS_API_KEY:
+            print("NEWS_API_KEY not configured")
+            return "📰 News service not configured"
+
         url = f"https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey={NEWS_API_KEY}"
-        resp = requests.get(url, timeout=10).json()
-        print("NEWS API RESPONSE:", resp)  # debug!
-        articles = resp.get('articles', [])
-        if articles:
-            top = articles[:2]
-            news = "\n".join([f"🗞️ Finance News: {a['title']} ({a['source']['name']})" for a in top])
-            return news
-        else:
-            return "No finance news found."
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()  # Will raise an exception for 4XX/5XX status codes
+        
+        data = resp.json()
+        if 'status' in data and data['status'] != 'ok':
+            print(f"News API error: {data.get('message', 'Unknown error')}")
+            return "Could not fetch finance news: API error"
+            
+        articles = data.get('articles', [])
+        if not articles:
+            return "No finance news available at the moment."
+            
+        top = articles[:2]
+        news = "\n".join([f"🗞️ Finance News: {a['title']} ({a['source']['name']})" for a in top])
+        return news
+
+    except requests.exceptions.RequestException as e:
+        print(f"News API request error: {e}")
+        return "Could not fetch finance news: Network error"
     except Exception as e:
-        print("Error in get_finance_news:", e)
-        return "Could not fetch finance news."
+        print(f"Unexpected error in get_finance_news: {e}")
+        return "Could not fetch finance news: Internal error"
 
 # ---- Unified Command Handler (example) ----
 def handle_telegram_command(command, openai_api_key, keyword_found=None):
