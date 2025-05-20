@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 from flask import Flask
+from stock import ask_chatgpt, fetch_stock_data, generate_chart
 app = Flask(__name__)
 
 
