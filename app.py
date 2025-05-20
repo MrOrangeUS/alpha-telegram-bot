@@ -45,7 +45,13 @@ def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     message = data.get("message") or data.get("channel_post", {})
     text = message.get("text", "").strip()
     chat_id = message.get("chat", {}).get("id")
+
+    if not text:
+        return "No command text in message", 200
+
     command = text.split()[0].split("@")[0].lower()
+    # ...rest of your logic...
+
     # Example keyword detection
     keywords = ["btc", "eth", "xfor", "doge", "pump", "ai"]
     keyword_found = next((kw for kw in keywords if kw in text.lower()), None)
