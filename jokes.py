@@ -1,6 +1,7 @@
 import openai
 import random
 import os
+import requests
 
 COMEDIANS = [
     "George Carlin",
