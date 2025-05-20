@@ -245,9 +245,12 @@ def generate_chart(symbol, hist):
         
         plt.tight_layout()
         
+        # Create charts directory if it doesn't exist
+        charts_dir = os.path.join(os.getcwd(), 'charts')
+        os.makedirs(charts_dir, exist_ok=True)
+        
         # Save chart
-        temp_dir = tempfile.gettempdir()
-        filename = os.path.join(temp_dir, f"{symbol}_chart.png")
+        filename = os.path.join(charts_dir, f"{symbol}_chart.png")
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.close()
         
@@ -258,7 +261,7 @@ def generate_chart(symbol, hist):
         return filename
         
     except Exception as e:
-        logger.error(f"Error generating chart for {symbol}: {str(e)}")
+        logger.error(f"Error generating chart for {symbol}: {str(e)}", exc_info=True)
         return None
 
 # === GPT-Powered Analysis as Nova Stratos ===

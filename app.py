@@ -117,6 +117,16 @@ def run_alpha_drop(chat_id, telegram_token, openai_api_key):
 def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
     try:
         url = f"https://api.telegram.org/bot{telegram_token}/sendPhoto"
+        
+        # Verify file exists and is readable
+        if not os.path.exists(chart_file):
+            logger.error(f"Chart file not found: {chart_file}")
+            return
+            
+        if not os.access(chart_file, os.R_OK):
+            logger.error(f"Chart file not readable: {chart_file}")
+            return
+            
         with open(chart_file, 'rb') as f:
             files = {'photo': f}
             data = {
@@ -133,6 +143,19 @@ def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
             try:
                 os.remove(chart_file)
                 logger.debug(f"Cleaned up chart file: {chart_file}")
+                
+                # Clean up old chart files
+                charts_dir = os.path.dirname(chart_file)
+                current_time = time.time()
+                for old_file in os.listdir(charts_dir):
+                    file_path = os.path.join(charts_dir, old_file)
+                    # Remove files older than 1 hour
+                    if os.path.isfile(file_path) and current_time - os.path.getmtime(file_path) > 3600:
+                        try:
+                            os.remove(file_path)
+                            logger.debug(f"Cleaned up old chart file: {file_path}")
+                        except Exception as e:
+                            logger.warning(f"Failed to cleanup old chart file {file_path}: {str(e)}")
             except Exception as e:
                 logger.warning(f"Failed to cleanup chart file: {str(e)}")
                 
