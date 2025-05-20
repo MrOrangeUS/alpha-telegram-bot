@@ -1,148 +1,100 @@
-import yfinance as yf
+import requests
 import matplotlib.pyplot as plt
-import openai
-import logging
-import tempfile
+import numpy as np
 import os
 
-# Setup logging
-os.makedirs('logs', exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/bot.log'),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+POLYGON_API_KEY = os.getenv('POLYGON_API_KEY')
 
-def fetch_stock_data(symbol):
-    """Fetch 30-day stock data and calculate RSI."""
-    try:
-        stock = yf.Ticker(symbol)
-        hist = stock.history(period="30d", interval="1d")
-        if hist.empty:
-            logger.warning(f"No data for {symbol}")
-            return None, None
-        # Calculate RSI (14-period)
-        delta = hist['Close'].diff().dropna()
-        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
-        loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
-        rs = gain / loss
-        hist['RSI'] = 100 - (100 / (1 + rs))
-        logger.info(f"Fetched stock data for {symbol}")
-        return stock.info, hist
-    except Exception as e:
-        logger.error(f"Failed to fetch stock data for {symbol}: {e}")
-        return None, None
-
-def generate_chart(symbol, hist):
-    """Generate a price + RSI chart, save to temp file."""
-    try:
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-            ax1.plot(hist.index, hist['Close'], label="Close Price", color='blue', linewidth=2)
-            ax1.set_title(f"{symbol} - 30 Day Price & RSI", fontsize=12)
-            ax1.set_ylabel("Price (USD)", fontsize=10)
-            ax1.legend(loc='upper left')
-            ax1.grid(True, linestyle='--', alpha=0.7)
-            ax2.plot(hist.index, hist['RSI'], label="RSI (14)", color='purple', linewidth=2)
-            ax2.axhline(70, color='red', linestyle='--', alpha=0.8)
-            ax2.axhline(30, color='green', linestyle='--', alpha=0.8)
-            ax2.set_ylabel("RSI", fontsize=10)
-            ax2.legend(loc='upper left')
-            ax2.grid(True, linestyle='--', alpha=0.7)
-            plt.tight_layout()
-            plt.savefig(tmp.name, dpi=150, bbox_inches='tight')
-            plt.close(fig)
-            logger.info(f"Generated chart for {symbol}: {tmp.name}")
-            return tmp.name
-    except Exception as e:
-        logger.error(f"Failed to generate chart for {symbol}: {e}")
+def fetch_polygon_price(symbol, polygon_api_key=POLYGON_API_KEY):
+    url = f"https://api.polygon.io/v2/last/trade/{symbol.upper()}?apiKey={polygon_api_key}"
+    resp = requests.get(url)
+    data = resp.json()
+    if 'results' in data:
+        price = data['results']['price']
+        print(f"Polygon price for {symbol}: {price}")
+        return price
+    else:
+        print("Polygon API error:", data)
         return None
 
-def ask_chatgpt(symbol, info, hist, openai_api_key):
-    """Query ChatGPT for a trade setup."""
-    try:
-        openai.api_key = openai_api_key
-        rsi_val = round(hist['RSI'].dropna().iloc[-1], 2) if not hist['RSI'].dropna().empty else "N/A"
-        current_price = info.get('regularMarketPrice', 'N/A')
-        volume = info.get('volume', 'N/A')
-        prompt = f"""You are an elite AI market analyst for a private Telegram alpha channel. Your job is to produce a deeply researched, actionable trade setup for {symbol}, based on all the latest technical, volume, trend, and news data below, plus any macro or sector sentiment.
-If the options chain is liquid, always recommend the most profitable call or put options contract as well as the stock play.
+def fetch_polygon_ohlc(symbol, polygon_api_key=POLYGON_API_KEY, limit=30):
+    # Fetch last N daily candles for charting (limit=30 by default)
+    # Dates here are wide; Polygon returns latest first with sort=desc
+    url = (
+        f"https://api.polygon.io/v2/aggs/ticker/{symbol.upper()}/range/1/day/2024-01-01/2024-12-31"
+        f"?adjusted=true&sort=desc&limit={limit}&apiKey={polygon_api_key}"
+    )
+    resp = requests.get(url)
+    data = resp.json()
+    if 'results' in data:
+        candles = data['results']
+        # Flip to ascending order for charting
+        candles = candles[::-1]
+        return candles
+    else:
+        print("Polygon OHLC API error:", data)
+        return []
 
-- Ticker: {symbol}
-- Current Price: {current_price}
-- RSI (14): {rsi_val}
-- Volume: {volume}
-
-Instructions:
-1. Do deep technical analysis. Detect breakouts, reversals, price patterns, or divergences. State why.
-2. Scan for news, macro conditions, or sector trends affecting the ticker and reference them if relevant.
-3. Output an actionable trade:
-   - Direction (Long/Short/No Trade)
-   - Entry Price
-   - Stop Loss
-   - Two Price Targets (conservative/aggressive)
-4. Options Play:
-   - Suggest the most profitable call or put (whichever matches your thesis) with:
-     - Strike Price
-     - Expiration Date
-     - Entry Price (option premium)
-     - Profit Target
-   - Use only near-the-money, next-month contracts unless you see a better opportunity.
-   - If options volume is too low or no clear edge, state "No optimal options play."
-5. Justify the setup with 1-2 sharp sentences using technical, volume, AND news/macro logic.
-6. End with: "Posted by AI Alpha Club | More: @xxx"
-
-Format your answer exactly like this:
-📊 DEEP RESEARCH SIGNAL ({symbol})
-
-Direction: [Long/Short/No Trade]
-Entry: $[entry]
-Stop Loss: $[stop]
-Targets: $[target1] (conservative), $[target2] (aggressive)
-
-Options Play: [Call/Put, Strike, Expiry, Entry, Target]
-[Or say "No optimal options play."]
-
-Reason: [Clear, direct logic—use technical, volume, AND news/macro context.]
-
-Posted by AI Alpha Club | More: @xxx
-
-Limit answer to 150 words. Be bold and precise. Never use "not financial advice."
-"""
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=300,
-            timeout=10
-        )
-        analysis = response.choices[0].message['content'].strip()
-        return analysis
-    except Exception as e:
-        logger.error(f"ChatGPT failed for {symbol}: {e}")
-        return "Analysis unavailable. Try again later.\nFollow @MemeDIYGenZX for more chaos!"
-
-def multi_ticker_alpha(tickers, openai_api_key):
-    """
-    Given a list of tickers, returns a dict:
-    {symbol: {'info': ..., 'hist': ..., 'analysis': ..., 'chart': ...}}
-    """
-    results = {}
-    for symbol in tickers:
-        logger.info(f"--- Processing {symbol} ---")
-        info, hist = fetch_stock_data(symbol)
-        if info and hist is not None:
-            chart = generate_chart(symbol, hist)
-            analysis = ask_chatgpt(symbol, info, hist, openai_api_key)
-            results[symbol] = {
-                'info': info,
-                'hist': hist,
-                'analysis': analysis,
-                'chart': chart
-            }
+def calc_rsi(closes, period=14):
+    closes = np.array(closes)
+    deltas = np.diff(closes)
+    seed = deltas[:period]
+    up = seed[seed >= 0].sum() / period
+    down = -seed[seed < 0].sum() / period
+    rs = up / down if down != 0 else 0
+    rsi = np.zeros_like(closes)
+    rsi[:period] = 100. - 100. / (1. + rs)
+    for i in range(period, len(closes)):
+        delta = deltas[i - 1]
+        if delta > 0:
+            upval = delta
+            downval = 0.
         else:
-            logger.warning(f"Skipping {symbol}: no data.")
-    return results
+            upval = 0.
+            downval = -delta
+        up = (up * (period - 1) + upval) / period
+        down = (down * (period - 1) + downval) / period
+        rs = up / down if down != 0 else 0
+        rsi[i] = 100. - 100. / (1. + rs)
+    return rsi
+
+def fetch_stock_data(symbol):
+    candles = fetch_polygon_ohlc(symbol)
+    if not candles or len(candles) < 15:
+        print(f"Not enough candle data for {symbol}")
+        return None, None
+    closes = [c['c'] for c in candles]
+    rsi = calc_rsi(closes)
+    info = {
+        "regularMarketPrice": closes[-1],
+        "volume": candles[-1]['v']
+    }
+    # Emulate a DataFrame for charting (for matplotlib)
+    class History:
+        pass
+    hist = History()
+    hist.index = [c['t'] for c in candles]  # Timestamps (ms)
+    hist.close = closes
+    hist.rsi = rsi
+    hist.volumes = [c['v'] for c in candles]
+    hist._candles = candles
+    return info, hist
+
+def generate_chart(symbol, hist):
+    import datetime
+    timestamps = [datetime.datetime.fromtimestamp(t/1000) for t in hist.index]
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))
+    ax1.plot(timestamps, hist.close, label="Close Price", color='blue')
+    ax1.set_title(f"{symbol} - 30 Day")
+    ax1.legend()
+    ax1.grid(True)
+    ax2.plot(timestamps, hist.rsi, label="RSI", color='purple')
+    ax2.axhline(70, color='red', linestyle='--')
+    ax2.axhline(30, color='green', linestyle='--')
+    ax2.legend()
+    ax2.grid(True)
+    plt.tight_layout()
+    filename = f"/tmp/{symbol}_chart.png"
+    plt.savefig(filename)
+    plt.close()
+    return filename
