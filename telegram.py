@@ -48,7 +48,14 @@ def get_politics_news():
         articles = resp.get('articles', [])
         if articles:
             top = articles[:2]
-            news = "\n".join([f"📰 Politics: {a['title']} {a['source']['name']}" for a in articles])
+            news = "\n".join([f"🗞️ Politics: {a['title']} {a['source']['name']}" for a in top])
+            return news
+        else:
+            return "No politics news found."
+    except Exception as e:
+        print("Error in get_politics_news:", e)
+        return "Could not fetch politics news."
+
 
 
 def get_tech_news():
