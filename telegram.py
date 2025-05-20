@@ -1,22 +1,11 @@
 import openai
 import requests
 import os
+from jokes import nova_joke
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-# ---- Nova's Real-Time Joke ----
-def nova_joke(openai_api_key):
-    openai.api_key = openai_api_key
-    prompt = (
-        "You are Nova Stratos, an AI quant analyst with a dry, clever sense of trading humor. "
-        "Generate a witty one-liner or joke related to trading, crypto, meme coins, or the wild world of financial markets. "
-        "Make sure it’s fresh and never just a cliché."
-    )
-    response = openai.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": prompt}]
-)
-  #return response.choices[0].message.content
+
 
 # ---- Nova's Real-Time Comedian Joke ----
 def random_comedian_joke(openai_api_key, topic="trading, crypto, meme coins, or financial markets"):
@@ -70,7 +59,7 @@ def handle_telegram_command(command, openai_api_key, keyword_found=None):
 
 # ---- Send Welcome DM ----
 def send_welcome_dm(username, bot_token):
-    msg = """🚀 You’re in.
+    msg = """🚀 You're in.
 
 Welcome to *DAILY ALPHA* — my private signal channel.
 
@@ -78,7 +67,7 @@ Welcome to *DAILY ALPHA* — my private signal channel.
 ✅ Turn on notifications  
 ✅ Tap the pinned post for the latest alpha
 
-Link is yours — don’t share it.
+Link is yours — don't share it.
 Next move hits soon.
 
 – @MrOrangeUS"""

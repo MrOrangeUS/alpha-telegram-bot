@@ -12,6 +12,28 @@ from paypal import verify_ipn
 
 # --- ENV VARIABLES ---
 load_dotenv()
+
+# Required environment variables
+REQUIRED_ENV_VARS = {
+    'TELEGRAM_BOT_TOKEN': 'Telegram bot token for sending messages',
+    'TELEGRAM_CHAT_ID': 'Telegram chat ID for the channel',
+    'OPENAI_API_KEY': 'OpenAI API key for GPT-4 interactions',
+    'POLYGON_API_KEY': 'Polygon.io API key for stock data',
+    'NEWS_API_KEY': 'NewsAPI key for finance news'
+}
+
+# Validate required environment variables
+missing_vars = []
+for var, description in REQUIRED_ENV_VARS.items():
+    if not os.getenv(var):
+        missing_vars.append(f"{var} ({description})")
+
+if missing_vars:
+    print("Error: Missing required environment variables:")
+    for var in missing_vars:
+        print(f"- {var}")
+    sys.exit(1)
+
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -52,65 +74,57 @@ def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
 
 # ---- Webhook Handler ----
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
-    message = data.get("message") or data.get("channel_post", {})
-    text = message.get("text", "")
+    try:
+        message = data.get("message") or data.get("channel_post", {})
+        text = message.get("text", "")
+        chat_id = message.get("chat", {}).get("id")
 
-    if not text or not text.strip():
-        return "🦾 I only understand text commands. Try /drop, /memesnipe, or /joke!", 200
+        if not text or not text.strip():
+            return "🦾 I only understand text commands. Try /drop, /memesnipe, or /joke!", 200
 
-    split_text = text.strip().split()
-    if not split_text:
-        return "🦾 No recognizable command. Try /drop, /memesnipe, or /joke!", 200
+        split_text = text.strip().split()
+        if not split_text:
+            return "🦾 No recognizable command. Try /drop, /memesnipe, or /joke!", 200
 
-    command = split_text[0].split("@")[0].lower()
-    chat_id = message.get("chat", {}).get("id")
-    if command == "/drop":
-        reply = "🚀 Alpha drop initiated manually!"
-    elif command == "/joke":
-        reply = nova_joke(openai_api_key) or "Nova's joke generator glitched."
-    elif command == "/memesnipe":
-        reply = nova_memesnipe(openai_api_key)
-    elif command == "/news":
-        reply = get_finance_news()    
-# ...more commands...
+        command = split_text[0].split("@")[0].lower()
+        
+        # Keyword detection
+        keywords = ["btc", "eth", "xfor", "doge", "pump", "ai"]
+        keyword_found = next((kw for kw in keywords if kw in text.lower()), None)
 
-# ...etc...
+        # Command logic
+        if command == "/drop":
+            run_alpha_drop(chat_id, bot_token, openai_api_key)
+            reply = "🚀 Alpha drop initiated manually!"
+        elif command == "/memesnipe":
+            reply = nova_memesnipe(openai_api_key)
+        elif command == "/joke":
+            reply = nova_joke(openai_api_key)
+        elif command == "/news":
+            reply = get_finance_news()
+        elif command == "/status":
+            reply = "🤖 Nova Stratos is online and ready!"
+        elif keyword_found:
+            reply = f"👀 You mentioned *{keyword_found.upper()}* — want the latest update? Try /drop or /memesnipe."
+        else:
+            reply = "Unknown command. Try /drop, /memesnipe, /joke, or /news."
 
-    reply = nova_joke(openai_api_key) or "Nova's joke generator glitched."
+        # Send reply
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": reply,
+            "parse_mode": "Markdown"
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        return "OK", 200
 
-
-    # ...rest of your command handling...
-      # Example keyword detection
-    keywords = ["btc", "eth", "xfor", "doge", "pump", "ai"]
-    keyword_found = next((kw for kw in keywords if kw in text.lower()), None)
-
-    # Command logic
-    if command == "/drop":
-        run_alpha_drop(chat_id, bot_token, openai_api_key)
-        reply = "🚀 Alpha drop initiated manually!"
-    elif command == "/memesnipe":
-        reply = nova_memesnipe(openai_api_key)
-    elif command == "/joke":
-        reply = nova_joke(openai_api_key)
-    elif command == "/news":
-        reply = get_finance_news()
-    elif command == "/status":
-        reply = "🤖 Nova Stratos is online and ready!"
-    elif keyword_found:
-        reply = f"👀 You mentioned *{keyword_found.upper()}* — want the latest update? Try /drop or /memesnipe."
-    else:
-        reply = "Unknown command. Try /drop, /memesnipe, /joke, or /news."
-
-    # Send reply (text only)
-    import requests
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": reply,
-        "parse_mode": "Markdown"
-    }
-    requests.post(url, json=payload)
-    return "OK", 200
+    except Exception as e:
+        import traceback
+        print(f"Webhook route error: {e}")
+        traceback.print_exc()
+        return "Server error", 500
 
 # ---- PayPal IPN Handler ----
 @app.route('/paypal-ipn', methods=['POST'])

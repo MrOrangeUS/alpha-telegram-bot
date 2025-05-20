@@ -9,29 +9,54 @@ MEME_COINS = [
 ]
 
 def fetch_memecoin_prices(vs_currency="usd"):
-    params = {
-        "ids": ",".join(MEME_COINS),
-        "vs_currencies": vs_currency,
-        "include_24hr_change": "true"
-    }
-    resp = requests.get(COINGECKO_URL, params=params)
-    data = resp.json()
-    result = {}
-    for coin in MEME_COINS:
-        if coin in data:
-            result[coin] = {
-                "price": data[coin][vs_currency],
-                "change": data[coin].get(f"{vs_currency}_24h_change", 0)
-            }
-    return result
+    try:
+        params = {
+            "ids": ",".join(MEME_COINS),
+            "vs_currencies": vs_currency,
+            "include_24hr_change": "true"
+        }
+        resp = requests.get(COINGECKO_URL, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        if not data:
+            print("No data received from CoinGecko API")
+            return {}
+            
+        result = {}
+        for coin in MEME_COINS:
+            if coin in data:
+                result[coin] = {
+                    "price": data[coin][vs_currency],
+                    "change": data[coin].get(f"{vs_currency}_24h_change", 0)
+                }
+        return result
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching memecoin prices: {e}")
+        return {}
+    except Exception as e:
+        print(f"Unexpected error in fetch_memecoin_prices: {e}")
+        return {}
 
 def top_meme_breakouts(prices, min_percent_change=10):
-    movers = []
-    for coin, d in prices.items():
-        if abs(d["change"]) >= min_percent_change:
-            movers.append((coin, d))
-    movers.sort(key=lambda x: abs(x[1]["change"]), reverse=True)
-    return movers
+    try:
+        if not prices:
+            return []
+            
+        movers = []
+        for coin, d in prices.items():
+            if not isinstance(d, dict) or "change" not in d:
+                print(f"Invalid data format for coin {coin}")
+                continue
+                
+            if abs(d["change"]) >= min_percent_change:
+                movers.append((coin, d))
+                
+        movers.sort(key=lambda x: abs(x[1]["change"]), reverse=True)
+        return movers
+    except Exception as e:
+        print(f"Error in top_meme_breakouts: {e}")
+        return []
 
 def fetch_trending_coins():
     try:
