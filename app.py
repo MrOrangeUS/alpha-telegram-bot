@@ -125,10 +125,9 @@ def init_scheduler():
         sys.exit(1)
 
 # ---- Joke ----
-def handle_webhook(...):
+def handle_webhook(data, bot_token, allowed_chat_id, openai_api_
     # ... previous code ...
     command = text.split()[0].split("@")[0]
-
     if command == "/drop":
         # drop logic
         reply = "Alpha drop..."
