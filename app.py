@@ -71,7 +71,7 @@ def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     elif command == "/memesnipe":
         reply = nova_memesnipe(openai_api_key)
     elif command == "/news":
-    reply = get_finance_news()    
+        reply = get_finance_news()    
 # ...more commands...
 
 # ...etc...
