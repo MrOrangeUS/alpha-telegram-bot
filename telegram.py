@@ -16,7 +16,7 @@ def nova_joke(openai_api_key):
     model="gpt-4",
     messages=[{"role": "user", "content": prompt}]
 )
-return response.choices[0].message.content
+  #return response.choices[0].message.content
 
 # ---- Nova's Real-Time Comedian Joke ----
 def random_comedian_joke(openai_api_key, topic="trading, crypto, meme coins, or financial markets"):
