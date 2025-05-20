@@ -237,4 +237,4 @@ else:
 
     except Exception as e:
         logger.error(f"Webhook error: {e}")
-        return "Server error", 500
+        # return "Server error", 500
