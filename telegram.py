@@ -163,8 +163,20 @@ def schedule_rotating_content(chat_id, bot_token):
     scheduler.start()
 
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
-    elif command == "/memesnipe":
-    reply = nova_memesnipe(OPENAI_API_KEY)
+  command = text.split()[0].split("@")[0]
+
+if command == "/drop":
+    # existing drop logic
+    run_alpha_drop(chat_id, telegram_token, openai_api_key)
+    reply = "🚀 Alpha drop initiated manually!"
+elif command == "/status":
+    reply = "🤖 Bot is online and ready!"
+elif command == "/memesnipe":
+    reply = nova_memesnipe(openai_api_key)  # <--- this triggers Nova's meme coin AI drop
+elif keyword_found:
+    reply = f"👀 You mentioned *{keyword_found.upper()}* — want the latest update? Try /drop or /memesnipe."
+else:
+    reply = "Unknown command. Try /drop or /memesnipe"
     try:
         logger.debug(f"Webhook data: {data}")
         message = data.get("message") or data.get("channel_post", {})
