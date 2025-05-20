@@ -5,6 +5,7 @@ import os
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from stock import fetch_stock_data, generate_chart, ask_chatgpt
+from memecoin import nova_memesnipe
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -162,6 +163,8 @@ def schedule_rotating_content(chat_id, bot_token):
     scheduler.start()
 
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
+    elif command == "/memesnipe":
+    reply = nova_memesnipe(OPENAI_API_KEY)
     try:
         logger.debug(f"Webhook data: {data}")
         message = data.get("message") or data.get("channel_post", {})
