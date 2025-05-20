@@ -2,6 +2,7 @@ from flask import Flask, request
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 import sys
+from telegram import nova_joke
 
 # --- Import functions from your modules ---
 from stock import ask_chatgpt, fetch_stock_data, generate_chart
@@ -121,6 +122,10 @@ def init_scheduler():
     except Exception as e:
         print(f"Scheduler init error: {e}")
         sys.exit(1)
+
+# ---- Joke ----
+elif command == "/joke":
+    reply = nova_joke(openai_api_key)
 
 # ---- Start Everything ----
 if __name__ == '__main__':
