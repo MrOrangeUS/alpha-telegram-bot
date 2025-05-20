@@ -41,6 +41,7 @@ def get_finance_news():
     try:
         url = f"https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey={NEWS_API_KEY}"
         resp = requests.get(url, timeout=10).json()
+        print("NEWS API RESPONSE:", resp)  # debug!
         articles = resp.get('articles', [])
         if articles:
             top = articles[:2]
