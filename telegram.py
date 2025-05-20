@@ -12,11 +12,29 @@ def nova_joke(openai_api_key):
         "Generate a witty one-liner or joke related to trading, crypto, meme coins, or the wild world of financial markets. "
         "Make sure it’s fresh and never just a cliché."
     )
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": prompt}]
+)
+return response.choices[0].message.content
+
+# ---- Nova's Real-Time Comedian Joke ----
+def random_comedian_joke(openai_api_key, topic="trading, crypto, meme coins, or financial markets"):
+    openai.api_key = openai_api_key
+    comedian = random.choice(COMEDIANS)
+    prompt = (
+        f"Act as {comedian}, the legendary stand-up comedian. "
+        f"Make a brand new, sharp, clever joke about {topic} as if you're performing live. "
+        f"Channel the exact comedic style, voice, and attitude of {comedian}. "
+        f"Don't recycle classic bits; make it original and relevant to modern trading, markets, or crypto culture. "
+        f"Deliver it as a one-liner or a short bit, and sign off with '- {comedian}'."
+    )
+    response = openai.chat.completions.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message['content']
+    return response.choices[0].message.content
+
 
 # ---- Get Latest Finance News ----
 def get_finance_news():
