@@ -100,7 +100,9 @@ def telegram_webhook():
             return "No data", 400
         return handle_webhook(data, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, OPENAI_API_KEY)
     except Exception as e:
+        import traceback
         print(f"Webhook route error: {e}")
+        traceback.print_exc()  # <--- Add this line for full stack trace!
         return "Server error", 500
 
 # ---- Scheduler ----
