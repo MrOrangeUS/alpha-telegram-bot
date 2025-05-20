@@ -57,9 +57,9 @@ def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     if command == "/drop":
     # drop logic
     reply = "Alpha drop initiated manually!"
-elif command == "/joke":
+    elif command == "/joke":
     reply = nova_joke(openai_api_key) or "Nova's joke generator glitched."
-elif command == "/memesnipe":
+    elif command == "/memesnipe":
     reply = nova_memesnipe(openai_api_key)
 # ...etc...
 
