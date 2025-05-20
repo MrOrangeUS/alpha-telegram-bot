@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # ---- Alpha Drop: Main Stock Signal + Joke ----
 def run_alpha_drop(chat_id, telegram_token, openai_api_key):
-    symbol = "XFOR"  # Change to your preferred stock or make this random
+    symbol = "XFOR"
     info, hist = fetch_stock_data(symbol)
     if info and hist is not None:
         chart = generate_chart(symbol, hist)
@@ -30,7 +30,6 @@ def run_alpha_drop(chat_id, telegram_token, openai_api_key):
 
 # ---- Telegram Photo Sender ----
 def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
-    import requests
     url = f"https://api.telegram.org/bot{telegram_token}/sendPhoto"
     files = {'photo': open(chart_file, 'rb')}
     data = {
@@ -39,6 +38,7 @@ def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
         'parse_mode': 'Markdown'
     }
     requests.post(url, files=files, data=data)
+
 
 # ---- Webhook Handler ----
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
