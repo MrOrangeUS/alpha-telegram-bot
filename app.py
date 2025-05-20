@@ -43,16 +43,20 @@ def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
 # ---- Webhook Handler ----
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     message = data.get("message") or data.get("channel_post", {})
-    text = message.get("text", "").strip()
+    text = message.get("text", "")
+
+    if not text or not text.strip():
+        return "🦾 I only understand text commands. Try /drop, /memesnipe, or /joke!", 200
+
+    split_text = text.strip().split()
+    if not split_text:
+        return "🦾 No recognizable command. Try /drop, /memesnipe, or /joke!", 200
+
+    command = split_text[0].split("@")[0].lower()
     chat_id = message.get("chat", {}).get("id")
 
-    if not text:
-        return "No command text in message", 200
-
-    command = text.split()[0].split("@")[0].lower()
-    # ...rest of your logic...
-
-    # Example keyword detection
+    # ...rest of your command handling...
+      # Example keyword detection
     keywords = ["btc", "eth", "xfor", "doge", "pump", "ai"]
     keyword_found = next((kw for kw in keywords if kw in text.lower()), None)
 
