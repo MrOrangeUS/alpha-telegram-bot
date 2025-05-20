@@ -125,8 +125,24 @@ def init_scheduler():
         sys.exit(1)
 
 # ---- Joke ----
-elif command == "/joke":
-    reply = nova_joke(openai_api_key)
+def handle_webhook(...):
+    # ... previous code ...
+    command = text.split()[0].split("@")[0]
+
+    if command == "/drop":
+        # drop logic
+        reply = "Alpha drop..."
+    elif command == "/status":
+        reply = "Bot is online!"
+    elif command == "/joke":
+        reply = nova_joke(openai_api_key)
+    elif command == "/memesnipe":
+        reply = nova_memesnipe(openai_api_key)
+    elif keyword_found:
+        reply = f"..."
+    else:
+        reply = "Unknown command. Try /drop or /memesnipe."
+    # ... send reply code here ...
 
 # ---- Start Everything ----
 if __name__ == '__main__':
