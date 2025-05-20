@@ -20,26 +20,35 @@ app = Flask(__name__)
 
 # ---- Alpha Drop: Main Stock Signal + Joke ----
 def run_alpha_drop(chat_id, telegram_token, openai_api_key):
-    symbol = "XFOR"
-    info, hist = fetch_stock_data(symbol)
-    if info and hist is not None:
-        chart = generate_chart(symbol, hist)
-        analysis = ask_chatgpt(symbol, info, hist, openai_api_key)
-        joke = nova_joke(openai_api_key)
-        final_message = f"{analysis}\n\n🦾 Nova's joke: {joke}"
-        send_telegram_post(symbol, final_message, chart, chat_id, telegram_token)
+    try:
+        symbol = "XFOR"
+        info, hist = fetch_stock_data(symbol)
+        if info and hist is not None:
+            chart = generate_chart(symbol, hist)
+            analysis = ask_chatgpt(symbol, info, hist, openai_api_key)
+            joke = nova_joke(openai_api_key)
+            final_message = f"{analysis}\n\n🦾 Nova's joke: {joke}"
+            send_telegram_post(symbol, final_message, chart, chat_id, telegram_token)
+        else:
+            print("No stock data available for drop!")
+    except Exception as e:
+        print("Error in run_alpha_drop:", e)
+
 
 # ---- Telegram Photo Sender ----
 def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
-    url = f"https://api.telegram.org/bot{telegram_token}/sendPhoto"
-    files = {'photo': open(chart_file, 'rb')}
-    data = {
-        'chat_id': chat_id,
-        'caption': analysis,
-        'parse_mode': 'Markdown'
-    }
-    requests.post(url, files=files, data=data)
-
+    try:
+        url = f"https://api.telegram.org/bot{telegram_token}/sendPhoto"
+        files = {'photo': open(chart_file, 'rb')}
+        data = {
+            'chat_id': chat_id,
+            'caption': analysis,
+            'parse_mode': 'Markdown'
+        }
+        r = requests.post(url, files=files, data=data)
+        print("Telegram photo response:", r.text)
+    except Exception as e:
+        print("Error in send_telegram_post:", e)
 
 # ---- Webhook Handler ----
 def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
@@ -56,11 +65,13 @@ def handle_webhook(data, bot_token, allowed_chat_id, openai_api_key):
     command = split_text[0].split("@")[0].lower()
     chat_id = message.get("chat", {}).get("id")
     if command == "/drop":
-        reply = "Alpha drop initiated manually!"
+        reply = "🚀 Alpha drop initiated manually!"
     elif command == "/joke":
         reply = nova_joke(openai_api_key) or "Nova's joke generator glitched."
     elif command == "/memesnipe":
         reply = nova_memesnipe(openai_api_key)
+    elif command == "/news":
+    reply = get_finance_news()    
 # ...more commands...
 
 # ...etc...
