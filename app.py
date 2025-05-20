@@ -25,16 +25,17 @@ def run_alpha_drop(chat_id, telegram_token, openai_api_key):
     if info and hist is not None:
         chart = generate_chart(symbol, hist)
         analysis = ask_chatgpt(symbol, info, hist, openai_api_key)
-        send_telegram_post(symbol, analysis, chart, chat_id, telegram_token)
+        joke = nova_joke(openai_api_key)
+        final_message = f"{analysis}\n\n🦾 Nova's joke: {joke}"
+        send_telegram_post(symbol, final_message, chart, chat_id, telegram_token)
 
 # ---- Telegram Message Handler ----
 def send_telegram_post(symbol, analysis, chart_file, chat_id, telegram_token):
     url = f"https://api.telegram.org/bot{telegram_token}/sendPhoto"
     files = {'photo': open(chart_file, 'rb')}
-    caption = f"📈 *ALPHA DROP – ${symbol}*\n\n{analysis}"
     data = {
         'chat_id': chat_id,
-        'caption': caption,
+        'caption': analysis,
         'parse_mode': 'Markdown'
     }
     requests.post(url, files=files, data=data)
