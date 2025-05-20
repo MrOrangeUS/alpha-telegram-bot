@@ -48,7 +48,7 @@ def get_politics_news():
         articles = resp.get('articles', [])
         if articles:
             top = articles[:2]
-            news = "\n".join([f"🏛️ Politics: {a['title']} ({a['source']['name']})"
+            news = "\n".join([f"📰 Politics: {a['title']} {a['source']['name']}" for a in articles])
 
 
 def get_tech_news():
