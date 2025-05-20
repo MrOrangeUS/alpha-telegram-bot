@@ -1,6 +1,6 @@
 Flask
 requests
-yfinance
+yfinance>=0.2.36
 matplotlib
 openai
 apscheduler
