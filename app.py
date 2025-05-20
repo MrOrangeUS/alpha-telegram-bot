@@ -3,6 +3,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 import os
 import sys
+import requests
 
 from stock import fetch_stock_data, generate_chart, ask_chatgpt
 from memecoin import nova_memesnipe
