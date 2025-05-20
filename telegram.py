@@ -6,6 +6,7 @@ import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from stock import fetch_stock_data, generate_chart, ask_chatgpt
 from memecoin import nova_memesnipe
+import openai
 
 # Setup logging
 os.makedirs('logs', exist_ok=True)
@@ -26,6 +27,19 @@ JOKES = [
 ]
 
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+
+def nova_joke(openai_api_key):
+    openai.api_key = openai_api_key
+    prompt = (
+        "You are Nova Stratos, an AI quant analyst with a dry, clever sense of trading humor. "
+        "Generate a witty one-liner or joke related to trading, crypto, meme coins, or the wild world of financial markets. "
+        "Make sure it’s fresh and never just a cliché."
+    )
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message['content']
 
 def get_finance_news():
     try:
